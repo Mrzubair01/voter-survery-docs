@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend Project Documentation</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="layout">
+    <nav>
+      <div class="brand"><span class="dot"></span> Voter Survey API</div>
+      <div class="base-url"><strong>Base URL</strong><br>https://voter-survery.onrender.com</div>
+
+      <h2>Overview</h2>
+      <ul class="toc">
+        <li><a href="#intro">What is this?</a></li>
+        <li><a href="#authn">Auth & Roles</a></li>
+      </ul>
+
+      <h2>Routes</h2>
+      <ul class="toc">
+        <li><a href="#auth">/api/auth</a></li>
+        <li><a href="#admin">/api/admin</a></li>
+        <li><a href="#user">/api/user</a></li>
+      </ul>
+
+      <h2>Other</h2>
+      <ul class="toc">
+        <li><a href="#middlewares">Middlewares</a></li>
+        <li><a href="#deployment">Deployment Notes</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <div class="header">
+        <h1>Voter Survey API Documentation</h1>
+        <div class="toolbar">
+          <span class="pill"><span class="dot-ok"></span> Live</span>
+          <button id="toggleTheme" class="btn" title="Toggle theme">Toggle Theme</button>
+        </div>
+      </div>
+      <p class="desc">RESTful backend service for managing voters and survey users. It uses JWT-based authentication and
+        role-based access control.</p>
+
+      <section id="intro" class="card">
+        <h2 class="section-title">What is this?</h2>
+        <p>This service powers a voter survey system. There is a single Admin who can create survey Users and assign
+          them one or more ward numbers. Users can query voters only for their assigned wards.</p>
+        <div class="callout"><strong>Note:</strong> Tokens are returned via <em>httpOnly</em> cookies and also included
+          in the JSON response. You can authenticate by cookie or send the token in an
+          <code>Authorization: Bearer &lt;token&gt;</code> header.
+        </div>
+      </section>
+
+      <section id="authn" class="card">
+        <h2 class="section-title">Authentication & Roles</h2>
+        <ul>
+          <li><strong>JWT</strong> is signed with <code>JWT_SECRET</code> and expires in 1 day.</li>
+          <li><strong>Admin</strong> token payload includes: <code>{ role: "admin", userId }</code>.</li>
+          <li><strong>User</strong> token payload includes: <code>{ role: "user", userId, ward: number[] }</code>.</li>
+        </ul>
+      </section>
+
+      <!-- AUTH ROUTES -->
+      <section id="auth" class="card">
+        <h2 class="section-title">/api/auth</h2>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mPOST">POST</span>
+            <span class="path">/api/auth/admin/login</span>
+            <span class="tag">Admin</span>
+          </div>
+          <div class="note">Logs in the Admin using credentials stored server-side. Sets a cookie and returns a token.
+          </div>
+
+          <h4>Request Body</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "userId": "adminId",
+  "password": "adminPassword"
+}</code></pre>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "message": "Admin logged in successfully",
+  "token": "&lt;jwt_token&gt;"
+}</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mPOST">POST</span>
+            <span class="path">/api/auth/admin/logout</span>
+            <span class="tag">Admin</span>
+          </div>
+          <div class="note">Clears the authentication cookie.</div>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "message": "Admin logged out successfully"
+}</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mPOST">POST</span>
+            <span class="path">/api/auth/user/login</span>
+            <span class="tag">User</span>
+          </div>
+          <div class="note">Logs in a User. The token payload contains the assigned ward array.</div>
+
+          <h4>Request Body</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "userId": "demoUser",
+  "password": "userPassword"
+}</code></pre>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "message": "User logged in successfully",
+  "token": "&lt;jwt_token&gt;"
+}</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mPOST">POST</span>
+            <span class="path">/api/auth/user/logout</span>
+            <span class="tag">User</span>
+          </div>
+          <div class="note">Clears the user authentication cookie.</div>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "message": "User logged out successfully"
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- ADMIN ROUTES -->
+      <section id="admin" class="card">
+        <h2 class="section-title">/api/admin <span class="tag">Protected: Admin</span></h2>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mPOST">POST</span>
+            <span class="path">/api/admin/user-register</span>
+          </div>
+          <div class="note">Creates a new survey user and assigns wards.</div>
+
+          <h4>Request Body</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "name": "John Doe",
+  "userId": "johndoe",
+  "contact": "1234567890",
+  "password": "securePass123",
+  "ward": [5, 7, 10]
+}</code></pre>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "message": "User registered successfully",
+  "user": {
+    "name": "John Doe",
+    "userId": "johndoe",
+    "password": "securePass123"
+  }
+}</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mPOST">POST</span>
+            <span class="path">/api/admin/user-delete/:userId</span>
+          </div>
+          <div class="note">Deletes a user by their <code>userId</code>.</div>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>{
+  "message": "User deleted successfully"
+}</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mGET">GET</span>
+            <span class="path">/api/admin/users</span>
+          </div>
+          <div class="note">Returns all registered users.</div>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>[{
+  "_id": "64f3...",
+  "name": "John Doe",
+  "userId": "johndoe",
+  "contact": "1234567890",
+  "ward": [5, 7, 10]
+}]</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mGET">GET</span>
+            <span class="path">/api/admin/voters</span>
+          </div>
+          <div class="note">Returns all voters.</div>
+
+          <h4>Response</h4>
+          <pre><button class="copy">Copy</button><code>[{
+  "_id": "64f4...",
+  "Name": "Jane Smith",
+  "Ward_Number": 5
+}]</code></pre>
+        </div>
+      </section>
+
+      <!-- USER ROUTES -->
+      <section id="user" class="card">
+        <h2 class="section-title">/api/user <span class="tag">Protected: User</span></h2>
+
+        <div class="endpoint">
+          <div class="top">
+            <span class="method mGET">GET</span>
+            <span class="path">/api/user/</span>
+          </div>
+          <div class="note">Returns voters for the logged-in user's assigned wards (uses <code>$in</code> on
+            <code>Ward_Number</code>).
+          </div>
+
+          <h4>Example Response</h4>
+          <pre><button class="copy">Copy</button><code>[{
+  "_id": "64f5...",
+  "Name": "Alice Johnson",
+  "Ward_Number": 5
+}, {
+  "_id": "64f6...",
+  "Name": "Bob Brown",
+  "Ward_Number": 7
+}]</code></pre>
+        </div>
+      </section>
+
+      <!-- MIDDLEWARES -->
+      <section id="middlewares" class="card">
+        <h2 class="section-title">Middlewares</h2>
+        <ul>
+          <li><strong>verifyToken</strong>: Reads JWT from cookie or <code>Authorization</code> header and attaches
+            payload to <code>req.user</code>.</li>
+          <li><strong>isAdmin</strong>: Ensures <code>req.user.role === "admin"</code>.</li>
+        </ul>
+        <div class="callout">All <code>/api/admin</code> routes apply both <code>verifyToken</code> and
+          <code>isAdmin</code>. All <code>/api/user</code> routes apply <code>verifyToken</code>.
+        </div>
+      </section>
+
+      <section id="deployment" class="card">
+        <h2 class="section-title">Deployment Notes</h2>
+        <ul>
+          <li>Deployed on Render: <a href="https://voter-survery.onrender.com">https://voter-survery.onrender.com</a>
+          </li>
+          <li>Cookies set with <code>httpOnly</code> and <code>secure</code> (<code>NODE_ENV==="production"</code>).
+          </li>
+          <li>You can also authenticate using <span class="kbd">Authorization: Bearer &lt;token&gt;</span>.</li>
+        </ul>
+      </section>
+
+      <footer>
+        © <span id="year"></span> Voter Survey API · Built with Express & MongoDB
+      </footer>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
